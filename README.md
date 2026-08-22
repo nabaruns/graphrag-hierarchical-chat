@@ -1,5 +1,7 @@
 # GraphRAG Explorer
 
+[![CI](https://github.com/nabaruns/graphrag-hierarchical-chat/actions/workflows/ci.yml/badge.svg)](https://github.com/nabaruns/graphrag-hierarchical-chat/actions/workflows/ci.yml)
+
 A full-stack, production-oriented **GraphRAG** application. It ingests documents
 with **parent-child hierarchical chunking**, extracts an **entity-relationship
 knowledge graph** with an LLM, and serves an interactive chat UI whose answers
