@@ -1,0 +1,45 @@
+# Self-hosted LLM on Kubernetes via vLLM (OpenAI-compatible server).
+# Requires a GPU node pool. vLLM exposes /v1/chat/completions and supports
+# guided JSON decoding, which gives reliable structured extraction.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: graphrag
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: vllm }
+  template:
+    metadata:
+      labels: { app: vllm }
+    spec:
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest
+          args:
+            - "--model"
+            - "Qwen/Qwen2.5-7B-Instruct"
+            - "--max-model-len"
+            - "8192"
+          ports:
+            - { containerPort: 8000 }
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - { name: hf-cache, mountPath: /root/.cache/huggingface }
+      volumes:
+        - name: hf-cache
+          emptyDir: {}
+      # nodeSelector / tolerations for your GPU pool go here.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-service
+  namespace: graphrag
+spec:
+  selector: { app: vllm }
+  ports:
+    - { name: http, port: 8000, targetPort: 8000 }

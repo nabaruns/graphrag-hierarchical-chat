@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+  namespace: graphrag
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: qdrant }
+  template:
+    metadata:
+      labels: { app: qdrant }
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.12.4
+          ports:
+            - { containerPort: 6333 }
+          volumeMounts:
+            - { name: storage, mountPath: /qdrant/storage }
+      volumes:
+        - name: storage
+          emptyDir: {}   # swap for a PersistentVolumeClaim in production
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: graphrag
+spec:
+  selector: { app: qdrant }
+  ports:
+    - { name: http, port: 6333, targetPort: 6333 }

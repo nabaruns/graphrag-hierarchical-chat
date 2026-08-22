@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: graphrag
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      containers:
+        - name: web
+          # Build with --build-arg NEXT_PUBLIC_API_URL=<public API URL>, since
+          # the value is baked in at build time for the browser bundle.
+          image: ghcr.io/OWNER/graphrag-explorer-web:latest
+          ports:
+            - { containerPort: 3000 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: graphrag
+spec:
+  type: LoadBalancer
+  selector: { app: web }
+  ports:
+    - { name: http, port: 80, targetPort: 3000 }
