@@ -17,7 +17,9 @@ COPY app ./app
 
 EXPOSE 8000
 
+# Bind to $PORT when the host provides one (Render, Cloud Run, Railway…),
+# defaulting to 8000 for local docker-compose.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
-    CMD curl -fsS http://localhost:8000/health || exit 1
+    CMD curl -fsS http://localhost:${PORT:-8000}/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
