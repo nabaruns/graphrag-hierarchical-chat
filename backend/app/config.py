@@ -5,8 +5,9 @@ code runs against Ollama (default, self-hosted, zero cost), a self-hosted vLLM
 endpoint on k8s, or OpenRouter, purely by changing env vars.
 """
 from functools import lru_cache
-from typing import List
+from typing import List, Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
 
     # --- Qdrant ---
     qdrant_url: str = "http://qdrant:6333"
+    qdrant_api_key: Optional[str] = None  # required by Qdrant Cloud
     qdrant_collection: str = "child_chunks"
 
     # --- Hierarchical chunking ---
@@ -47,7 +49,18 @@ class Settings(BaseSettings):
     max_iterations: int = 2  # LangGraph retrieve/traverse loops (multi-hop)
 
     # --- CORS ---
+    # Accepts a JSON list or a comma-separated string (e.g. from a host's env UI).
     cors_origins: List[str] = ["*"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_cors(cls, v):
+        if isinstance(v, str):
+            s = v.strip()
+            if s.startswith("["):
+                return v  # let pydantic parse JSON
+            return [o.strip() for o in s.split(",") if o.strip()]
+        return v
 
 
 @lru_cache

@@ -25,7 +25,11 @@ from ..ingestion.chunker import ChildChunk
 
 class VectorStore:
     def __init__(self) -> None:
-        self.client = QdrantClient(url=settings.qdrant_url)
+        # api_key is required by Qdrant Cloud, unused by the local instance.
+        self.client = QdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+        )
         self.collection = settings.qdrant_collection
 
     def ensure_collection(self) -> None:

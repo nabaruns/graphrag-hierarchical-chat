@@ -1,0 +1,40 @@
+# Render Blueprint for the FastAPI backend (Docker web service).
+# In the Render dashboard: New > Blueprint > connect this repo. Render reads this
+# file, builds backend/Dockerfile, and prompts for the secret env vars below.
+#
+# Alternatives with the same Docker image: Railway, Fly.io, Google Cloud Run.
+services:
+  - type: web
+    name: graphrag-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # --- LLM: OpenRouter (OpenAI-compatible) ---
+      - key: OPENAI_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: OPENAI_API_KEY
+        sync: false # paste your OpenRouter key (sk-or-...)
+      - key: LLM_MODEL
+        value: openai/gpt-4o-mini
+
+      # --- Neo4j Aura ---
+      - key: NEO4J_URI
+        sync: false # neo4j+s://xxxx.databases.neo4j.io
+      - key: NEO4J_USER
+        value: neo4j
+      - key: NEO4J_PASSWORD
+        sync: false
+
+      # --- Qdrant Cloud ---
+      - key: QDRANT_URL
+        sync: false # https://xxxx.cloud.qdrant.io:6333
+      - key: QDRANT_API_KEY
+        sync: false
+
+      # --- CORS: your Vercel frontend origin(s), comma-separated ---
+      - key: CORS_ORIGINS
+        sync: false # e.g. https://graphrag-hierarchical-chat.vercel.app
