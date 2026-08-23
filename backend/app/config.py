@@ -5,10 +5,10 @@ code runs against Ollama (default, self-hosted, zero cost), a self-hosted vLLM
 endpoint on k8s, or OpenRouter, purely by changing env vars.
 """
 from functools import lru_cache
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -49,16 +49,22 @@ class Settings(BaseSettings):
     max_iterations: int = 2  # LangGraph retrieve/traverse loops (multi-hop)
 
     # --- CORS ---
-    # Accepts a JSON list or a comma-separated string (e.g. from a host's env UI).
-    cors_origins: List[str] = ["*"]
+    # NoDecode disables pydantic-settings' automatic JSON decoding of this
+    # list field so the validator below can accept a plain comma-separated
+    # string from a host's env UI (as well as a JSON list).
+    cors_origins: Annotated[List[str], NoDecode] = ["*"]
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_cors(cls, v):
         if isinstance(v, str):
             s = v.strip()
+            if not s:
+                return ["*"]
             if s.startswith("["):
-                return v  # let pydantic parse JSON
+                import json
+
+                return json.loads(s)
             return [o.strip() for o in s.split(",") if o.strip()]
         return v
 
