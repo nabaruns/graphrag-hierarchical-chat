@@ -1,20 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ingest, ingestStatus, type IngestDoc } from "@/lib/api";
-
-const SAMPLE: IngestDoc[] = [
-  {
-    title: "TechCorp Acquisition News",
-    source: "sample/news-1",
-    text: "TechCorp announced today that it has acquired DataStart, an AI analytics startup founded in 2019 by Dr. Elena Reyes. DataStart is based in Austin, Texas, and is known for its real-time streaming analytics platform called StreamIQ. The acquisition, valued at 450 million dollars, is expected to strengthen TechCorp's cloud division. Dr. Elena Reyes will join TechCorp as the Vice President of AI Engineering, reporting directly to TechCorp CEO Marcus Chen. TechCorp is headquartered in Seattle and previously acquired CloudNimbus in 2021.",
-  },
-  {
-    title: "StreamIQ Product Overview",
-    source: "sample/product-1",
-    text: "StreamIQ is a real-time streaming analytics platform originally developed by DataStart. It is built on top of Apache Kafka and uses a custom query engine written in Rust. After the acquisition by TechCorp, StreamIQ was integrated into the TechCorp Cloud Suite. The engineering team behind StreamIQ is led by Priya Nair, who worked closely with Dr. Elena Reyes at DataStart.",
-  },
-];
+import { EXAMPLE_PROMPTS, SAMPLE_DOCS as SAMPLE } from "@/lib/sampleData";
 
 export default function IngestPage() {
   const [title, setTitle] = useState("");
@@ -73,7 +62,71 @@ export default function IngestPage() {
         </p>
       </div>
 
+      {/* Sample dataset preview */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-200">Sample dataset</h2>
+            <p className="text-xs text-slate-400">
+              {SAMPLE.length} short documents about a fictional company. Load
+              them, then try the questions below on the{" "}
+              <Link href="/" className="text-emerald-400 hover:underline">
+                Chat
+              </Link>{" "}
+              tab.
+            </p>
+          </div>
+          <button
+            onClick={() => submit(SAMPLE)}
+            disabled={busy}
+            className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-40"
+          >
+            Load sample dataset
+          </button>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {SAMPLE.map((d) => (
+            <div
+              key={d.title}
+              className="rounded-lg border border-slate-700 bg-slate-800/40 p-3"
+            >
+              <div className="text-sm font-medium text-slate-200">{d.title}</div>
+              <div className="mb-1 text-[11px] text-slate-500">{d.source}</div>
+              <p className="line-clamp-4 text-xs leading-relaxed text-slate-400">
+                {d.text}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Example questions
+          </div>
+          <ul className="space-y-1">
+            {EXAMPLE_PROMPTS.map((p) => (
+              <li
+                key={p.q}
+                className="flex items-center gap-2 text-sm text-slate-300"
+              >
+                <span className="text-emerald-400">›</span>
+                <span>{p.q}</span>
+                {p.hint && (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">
+                    {p.hint}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-200">
+          Or add your own document
+        </h2>
         <label className="mb-1 block text-xs font-medium text-slate-400">
           Title
         </label>
@@ -100,13 +153,6 @@ export default function IngestPage() {
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-40"
           >
             Ingest document
-          </button>
-          <button
-            onClick={() => submit(SAMPLE)}
-            disabled={busy}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800 disabled:opacity-40"
-          >
-            Load sample dataset
           </button>
         </div>
       </div>

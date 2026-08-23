@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   streamChat,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/api";
 import { CitationPanel } from "@/components/CitationCard";
 import { GraphInspector } from "@/components/GraphInspector";
+import { EXAMPLE_PROMPTS } from "@/lib/sampleData";
 
 interface Message {
   role: "user" | "assistant";
@@ -30,10 +32,10 @@ export default function ChatPage() {
     });
   };
 
-  async function send() {
-    const query = input.trim();
+  async function send(text?: string) {
+    const query = (text ?? input).trim();
     if (!query || busy) return;
-    setInput("");
+    if (!text) setInput("");
     setBusy(true);
 
     setMessages((m) => [
@@ -86,15 +88,36 @@ export default function ChatPage() {
       <section className="flex min-h-0 flex-col border-r border-slate-800">
         <div ref={scrollRef} className="scroll-thin min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
           {messages.length === 0 && (
-            <div className="mx-auto mt-16 max-w-md text-center text-slate-400">
+            <div className="mx-auto mt-12 max-w-xl text-center text-slate-400">
               <h2 className="mb-2 text-xl font-semibold text-slate-200">
                 Ask a question about your documents
               </h2>
               <p className="text-sm">
                 Answers fuse vector search over hierarchical chunks with
-                multi-hop knowledge-graph traversal. Ingest documents first on
-                the <span className="text-emerald-400">Ingest</span> tab.
+                multi-hop knowledge-graph traversal. New here? Load the sample
+                dataset on the{" "}
+                <Link href="/ingest" className="text-emerald-400 hover:underline">
+                  Ingest
+                </Link>{" "}
+                tab, then try one of these:
               </p>
+              <div className="mt-5 flex flex-col gap-2 text-left">
+                {EXAMPLE_PROMPTS.map((p) => (
+                  <button
+                    key={p.q}
+                    onClick={() => send(p.q)}
+                    disabled={busy}
+                    className="group flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2.5 text-sm text-slate-200 transition hover:border-emerald-500/60 hover:bg-slate-800/80 disabled:opacity-40"
+                  >
+                    <span>{p.q}</span>
+                    {p.hint && (
+                      <span className="ml-3 shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">
+                        {p.hint}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -140,7 +163,7 @@ export default function ChatPage() {
               className="scroll-thin max-h-32 flex-1 resize-none rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
             />
             <button
-              onClick={send}
+              onClick={() => send()}
               disabled={busy || !input.trim()}
               className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
