@@ -14,6 +14,17 @@ with a single `docker compose up`, with **no external API keys required**.
 
 ---
 
+## Demo
+
+[![Watch the explainer video](https://img.youtube.com/vi/0uT8Y4iIz7U/maxresdefault.jpg)](https://youtu.be/0uT8Y4iIz7U)
+
+▶️ **[Watch the explainer video](https://youtu.be/0uT8Y4iIz7U)** — a short walkthrough of
+hierarchical ingestion, knowledge-graph extraction, and the streaming chat + graph inspector.
+
+🔗 **Live demo:** <https://graphrag-hierarchical-chat.vercel.app> (free-tier backend may take ~30-60s to wake on the first request)
+
+---
+
 ## Highlights
 
 - **Hierarchical (small-to-big) indexing** — small ~200-token child chunks are
