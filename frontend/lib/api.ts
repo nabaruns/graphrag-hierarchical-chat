@@ -11,6 +11,8 @@ function protectionError(status: number): string | null {
     return "Rate limit reached (max 2 requests/minute). Please wait a moment and try again.";
   if (status === 403)
     return "Verification failed. Complete the challenge below and try again.";
+  if (status === 503)
+    return "Backend temporarily unavailable (database or model). It may be waking up — please try again shortly.";
   return null;
 }
 

@@ -14,7 +14,10 @@ from __future__ import annotations
 import asyncio
 import json
 
+import logging
+
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from ..graph_rag.agent import run_retrieval
@@ -22,15 +25,28 @@ from ..graph_rag.generation import stream_answer
 from ..models.schemas import ChatRequest
 from ..security import rate_limit, verify_turnstile
 
+logger = logging.getLogger("graphrag")
 router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat", dependencies=[Depends(verify_turnstile), Depends(rate_limit)])
-async def chat(req: ChatRequest) -> EventSourceResponse:
+async def chat(req: ChatRequest):
     # Retrieval (LangGraph) is synchronous; run it off the event loop.
-    retrieval = await asyncio.to_thread(
-        run_retrieval, req.query, req.top_k, req.max_hops
-    )
+    # Return a proper (CORS-carrying) error response if a store/LLM is down,
+    # so the browser shows a real message instead of an opaque "Failed to fetch".
+    try:
+        retrieval = await asyncio.to_thread(
+            run_retrieval, req.query, req.top_k, req.max_hops
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Retrieval failed")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Retrieval backend unavailable (graph or vector store). "
+                "Please try again shortly."
+            },
+        )
 
     async def event_generator():
         yield {
