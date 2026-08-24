@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import {
   streamChat,
+  TURNSTILE_SITE_KEY,
   type Citation,
   type Subgraph,
   type Triple,
 } from "@/lib/api";
 import { CitationPanel } from "@/components/CitationCard";
 import { GraphInspector } from "@/components/GraphInspector";
+import { Turnstile } from "@/components/Turnstile";
 import { EXAMPLE_PROMPTS } from "@/lib/sampleData";
 
 interface Message {
@@ -24,7 +26,11 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [subgraph, setSubgraph] = useState<Subgraph | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [tsKey, setTsKey] = useState(0); // bump to remount Turnstile for a fresh token
   const scrollRef = useRef<HTMLDivElement>(null);
+  const needsTurnstile = Boolean(TURNSTILE_SITE_KEY);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -35,6 +41,11 @@ export default function ChatPage() {
   async function send(text?: string) {
     const query = (text ?? input).trim();
     if (!query || busy) return;
+    if (needsTurnstile && !turnstileToken) {
+      setNotice("Please complete the verification below before sending.");
+      return;
+    }
+    setNotice(null);
     if (!text) setInput("");
     setBusy(true);
 
@@ -54,32 +65,51 @@ export default function ChatPage() {
       });
     };
 
-    await streamChat(query, {
-      onCitations: (c) => patchAssistant({ citations: c }),
-      onSubgraph: (data) => {
-        setSubgraph(data.subgraph);
-        setMessages((m) => {
-          const copy = [...m];
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = { ...last, triples: data.triples };
-          return copy;
-        });
+    const finish = () => {
+      setBusy(false);
+      // Turnstile tokens are single-use; get a fresh one for the next request.
+      if (needsTurnstile) {
+        setTurnstileToken("");
+        setTsKey((k) => k + 1);
+      }
+    };
+
+    await streamChat(
+      query,
+      {
+        onCitations: (c) => patchAssistant({ citations: c }),
+        onSubgraph: (data) => {
+          setSubgraph(data.subgraph);
+          setMessages((m) => {
+            const copy = [...m];
+            const last = copy[copy.length - 1];
+            copy[copy.length - 1] = { ...last, triples: data.triples };
+            return copy;
+          });
+        },
+        onToken: (text) => {
+          setMessages((m) => {
+            const copy = [...m];
+            const last = copy[copy.length - 1];
+            copy[copy.length - 1] = { ...last, content: last.content + text };
+            return copy;
+          });
+          scrollToBottom();
+        },
+        onDone: finish,
+        onError: (err) => {
+          patchAssistant({
+            content:
+              "⚠️ " +
+              (err instanceof Error
+                ? err.message
+                : "Something went wrong. Is the backend running?"),
+          });
+          finish();
+        },
       },
-      onToken: (text) => {
-        setMessages((m) => {
-          const copy = [...m];
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = { ...last, content: last.content + text };
-          return copy;
-        });
-        scrollToBottom();
-      },
-      onDone: () => setBusy(false),
-      onError: () => {
-        patchAssistant({ content: "⚠️ Something went wrong. Is the backend running?" });
-        setBusy(false);
-      },
-    });
+      { turnstileToken: turnstileToken || undefined }
+    );
   }
 
   return (
@@ -148,6 +178,16 @@ export default function ChatPage() {
         </div>
 
         <div className="border-t border-slate-800 bg-slate-900/60 p-4">
+          {notice && (
+            <div className="mb-2 rounded-lg border border-amber-800 bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
+              {notice}
+            </div>
+          )}
+          {needsTurnstile && (
+            <div className="mb-2">
+              <Turnstile key={tsKey} onToken={setTurnstileToken} />
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <textarea
               value={input}

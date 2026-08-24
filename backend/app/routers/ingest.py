@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Dict, List
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from ..ingestion.pipeline import ingest_documents
 from ..models.schemas import (
@@ -14,6 +14,7 @@ from ..models.schemas import (
     IngestResponse,
     JobStatus,
 )
+from ..security import rate_limit, verify_turnstile
 
 router = APIRouter(tags=["ingestion"])
 
@@ -31,7 +32,12 @@ def _run_job(job_id: str, documents: List[DocumentInput]) -> None:
         status.error = str(exc)
 
 
-@router.post("/ingest", response_model=IngestResponse, status_code=202)
+@router.post(
+    "/ingest",
+    response_model=IngestResponse,
+    status_code=202,
+    dependencies=[Depends(verify_turnstile), Depends(rate_limit)],
+)
 async def ingest(req: IngestRequest, background_tasks: BackgroundTasks) -> IngestResponse:
     job_id = str(uuid.uuid4())
     _JOBS[job_id] = JobStatus(job_id=job_id, status="pending")

@@ -90,7 +90,27 @@ backend (or trigger a redeploy) so the browser is allowed to call the API.
 | Backend | `QDRANT_URL` | `https://xxxx.cloud.qdrant.io:6333` |
 | Backend | `QDRANT_API_KEY` | `...` |
 | Backend | `CORS_ORIGINS` | `https://<app>.vercel.app` |
+| Backend | `RATE_LIMIT_PER_MINUTE` | `2` |
+| Backend | `TURNSTILE_SECRET_KEY` | `0x4AAA...` (optional) |
 | Frontend | `NEXT_PUBLIC_API_URL` | `https://graphrag-api.onrender.com` |
+| Frontend | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | `0x4AAA...` (optional) |
+
+## Abuse protection
+
+`POST /chat` and `POST /ingest` are protected by a per-IP rate limit
+(`RATE_LIMIT_PER_MINUTE`, default 2) and, optionally, Cloudflare Turnstile.
+Rate limiting is always on; Turnstile activates only when both keys are set.
+
+To enable Turnstile:
+
+1. In the Cloudflare dashboard → **Turnstile**, add a widget. Add your domain
+   (`graphrag-hierarchical-chat.vercel.app`). Copy the **Site Key** and
+   **Secret Key**.
+2. Backend (Render): set `TURNSTILE_SECRET_KEY` to the secret key → redeploys.
+3. Frontend (Vercel): set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to the site key, then
+   redeploy (`vercel --prod`) since `NEXT_PUBLIC_*` is baked at build time.
+
+Leave both unset to run without Turnstile (rate limiting still applies).
 
 ## Smoke test after deploy
 

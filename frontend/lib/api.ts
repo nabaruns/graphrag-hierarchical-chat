@@ -1,6 +1,19 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// When set, the Turnstile widget renders and a token is required for
+// chat/ingest. Empty string => Turnstile disabled (local/dev).
+export const TURNSTILE_SITE_KEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+
+function protectionError(status: number): string | null {
+  if (status === 429)
+    return "Rate limit reached (max 2 requests/minute). Please wait a moment and try again.";
+  if (status === 403)
+    return "Verification failed. Complete the challenge below and try again.";
+  return null;
+}
+
 export interface Citation {
   parent_id: string;
   doc_id: string;
@@ -56,16 +69,24 @@ export interface ChatHandlers {
 export async function streamChat(
   query: string,
   handlers: ChatHandlers,
-  opts?: { top_k?: number; max_hops?: number }
+  opts?: { top_k?: number; max_hops?: number; turnstileToken?: string }
 ): Promise<void> {
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (opts?.turnstileToken) headers["X-Turnstile-Token"] = opts.turnstileToken;
     const resp = await fetch(`${API_BASE}/api/v1/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, ...opts }),
+      headers,
+      body: JSON.stringify({
+        query,
+        top_k: opts?.top_k,
+        max_hops: opts?.max_hops,
+      }),
     });
     if (!resp.ok || !resp.body) {
-      throw new Error(`Chat request failed: ${resp.status}`);
+      throw new Error(
+        protectionError(resp.status) || `Chat request failed: ${resp.status}`
+      );
     }
 
     const reader = resp.body.getReader();
@@ -114,13 +135,20 @@ export interface IngestDoc {
   source?: string;
 }
 
-export async function ingest(documents: IngestDoc[]): Promise<string> {
+export async function ingest(
+  documents: IngestDoc[],
+  turnstileToken?: string
+): Promise<string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (turnstileToken) headers["X-Turnstile-Token"] = turnstileToken;
   const resp = await fetch(`${API_BASE}/api/v1/ingest`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ documents }),
   });
-  if (!resp.ok) throw new Error(`Ingest failed: ${resp.status}`);
+  if (!resp.ok) {
+    throw new Error(protectionError(resp.status) || `Ingest failed: ${resp.status}`);
+  }
   const body = await resp.json();
   return body.job_id as string;
 }

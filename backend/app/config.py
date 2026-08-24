@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     max_hops: int = 2  # graph traversal depth
     max_iterations: int = 2  # LangGraph retrieve/traverse loops (multi-hop)
 
+    # --- Abuse protection ---
+    rate_limit_enabled: bool = True
+    rate_limit_per_minute: int = 2  # per client IP, on POST /chat and /ingest
+    # Cloudflare Turnstile: verification is skipped when the secret is unset.
+    turnstile_secret_key: Optional[str] = None
+
     # --- CORS ---
     # NoDecode disables pydantic-settings' automatic JSON decoding of this
     # list field so the validator below can accept a plain comma-separated

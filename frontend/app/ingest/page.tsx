@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ingest, ingestStatus, type IngestDoc } from "@/lib/api";
+import { ingest, ingestStatus, TURNSTILE_SITE_KEY, type IngestDoc } from "@/lib/api";
+import { Turnstile } from "@/components/Turnstile";
 import { EXAMPLE_PROMPTS, SAMPLE_DOCS as SAMPLE } from "@/lib/sampleData";
 
 export default function IngestPage() {
@@ -11,7 +12,10 @@ export default function IngestPage() {
   const [status, setStatus] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [tsKey, setTsKey] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const needsTurnstile = Boolean(TURNSTILE_SITE_KEY);
 
   useEffect(() => {
     return () => {
@@ -20,11 +24,19 @@ export default function IngestPage() {
   }, []);
 
   async function submit(docs: IngestDoc[]) {
+    if (needsTurnstile && !turnstileToken) {
+      setError("Please complete the verification below before ingesting.");
+      return;
+    }
     setError(null);
     setBusy(true);
     setStatus({ status: "pending" });
     try {
-      const jobId = await ingest(docs);
+      const jobId = await ingest(docs, turnstileToken || undefined);
+      if (needsTurnstile) {
+        setTurnstileToken("");
+        setTsKey((k) => k + 1);
+      }
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         try {
@@ -61,6 +73,15 @@ export default function IngestPage() {
           asynchronously; status updates below.
         </p>
       </div>
+
+      {needsTurnstile && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+          <div className="mb-2 text-xs text-slate-400">
+            Verify you are human to enable ingestion:
+          </div>
+          <Turnstile key={tsKey} onToken={setTurnstileToken} />
+        </div>
+      )}
 
       {/* Sample dataset preview */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">

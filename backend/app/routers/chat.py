@@ -14,17 +14,18 @@ from __future__ import annotations
 import asyncio
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
 
 from ..graph_rag.agent import run_retrieval
 from ..graph_rag.generation import stream_answer
 from ..models.schemas import ChatRequest
+from ..security import rate_limit, verify_turnstile
 
 router = APIRouter(tags=["chat"])
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(verify_turnstile), Depends(rate_limit)])
 async def chat(req: ChatRequest) -> EventSourceResponse:
     # Retrieval (LangGraph) is synchronous; run it off the event loop.
     retrieval = await asyncio.to_thread(

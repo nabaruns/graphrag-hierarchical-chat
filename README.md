@@ -42,6 +42,8 @@ hierarchical ingestion, knowledge-graph extraction, and the streaming chat + gra
   emitting citations and the query subgraph before the tokens.
 - **Config-driven LLM** — any OpenAI-compatible endpoint (Ollama, vLLM,
   OpenRouter) via env vars, no code change.
+- **Abuse protection** — per-IP rate limiting (default 2 req/min) and optional
+  Cloudflare Turnstile on the expensive `/chat` and `/ingest` endpoints.
 
 ---
 

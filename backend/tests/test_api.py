@@ -78,3 +78,27 @@ def test_chat_streams_sse_events(monkeypatch):
 def test_health(monkeypatch):
     client = _client(monkeypatch)
     assert client.get("/health").json()["status"] == "ok"
+
+
+# These use the non-streaming /ingest endpoint (same dependencies as /chat) to
+# avoid a known sse-starlette + TestClient event-loop quirk on repeated calls.
+_INGEST_BODY = {"documents": [{"title": "T", "text": "x"}]}
+
+
+def test_rate_limit_blocks_after_two(monkeypatch):
+    monkeypatch.setattr(ingest_router, "ingest_documents", lambda docs, status: status)
+    client = _client(monkeypatch)
+    codes = [client.post("/api/v1/ingest", json=_INGEST_BODY).status_code for _ in range(3)]
+    assert codes[0] == 202
+    assert codes[1] == 202
+    assert codes[2] == 429  # third request in the window is rejected
+
+
+def test_turnstile_missing_token_rejected(monkeypatch):
+    from app.config import settings as st
+
+    monkeypatch.setattr(st, "turnstile_secret_key", "test-secret")
+    monkeypatch.setattr(ingest_router, "ingest_documents", lambda docs, status: status)
+    client = _client(monkeypatch)
+    # No X-Turnstile-Token header -> 403 before the handler runs.
+    assert client.post("/api/v1/ingest", json=_INGEST_BODY).status_code == 403

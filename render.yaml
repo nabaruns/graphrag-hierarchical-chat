@@ -38,3 +38,9 @@ services:
       # --- CORS: your Vercel frontend origin(s), comma-separated ---
       - key: CORS_ORIGINS
         sync: false # e.g. https://graphrag-hierarchical-chat.vercel.app
+
+      # --- Abuse protection ---
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "2"
+      - key: TURNSTILE_SECRET_KEY
+        sync: false # optional Cloudflare Turnstile secret; leave blank to disable
