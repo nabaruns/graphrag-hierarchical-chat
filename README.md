@@ -101,19 +101,21 @@ flowchart TD
 
 ```mermaid
 graph TD
-    D["(:Document)<br/>id · title · source"]
-    P["(:ParentChunk)<br/>id · doc_id · index · text"]
-    C["(:ChildChunk)<br/>id · doc_id · parent_id · index · text"]
-    E1["(:Entity)<br/>name · type"]
-    E2["(:Entity)"]
+    D["Document<br/>id · title · source"]
+    P["ParentChunk<br/>id · doc_id · index · text"]
+    C["ChildChunk<br/>id · doc_id · parent_id · index · text"]
+    E["Entity<br/>name · type"]
     Q[("Qdrant<br/>child-chunk vectors<br/>payload: child_id, parent_id, doc_id, text")]
 
     P -->|PART_OF| D
     C -->|CHILD_OF| P
-    E1 -->|"MENTIONED_IN (provenance)"| C
-    E1 -->|"typed edge, e.g. ACQUIRED / FOUNDED<br/>props: source_child_id, source_parent_id"| E2
+    E -->|"MENTIONED_IN (provenance)"| C
+    E -->|"typed edge, e.g. ACQUIRED / FOUNDED<br/>props: source_child_id, source_parent_id"| E
     C -.->|embedded| Q
 ```
+
+> Boxes are node labels (`:Document`, `:Entity`, …); the self-loop on `Entity`
+> is the typed `(:Entity)-[…]->(:Entity)` relationship.
 
 Neo4j is the source of truth for text, structure, and the graph; child-chunk
 **vectors** live in Qdrant, linked back by `parent_id` / `child_id` for
